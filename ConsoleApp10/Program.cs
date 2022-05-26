@@ -6,11 +6,13 @@ namespace EarthGravitySimulation
 {
     class Program
     {
+        private const char V = ' ';
         public static int width = 120;
         public static int height = 30;
         public static char[,] screen = new char[width, height];
         public static double aspect = (double)width / height;
         public static double pixelAspect = (double)8 / 16;
+        public static Body player = new Body(0.0, 0.0, 0.05, 1.0, new Vector(0, 0), true);
 
         private static void setup()
         {
@@ -18,13 +20,20 @@ namespace EarthGravitySimulation
             Console.Title = "Earth's gravity simulation";
             Console.SetWindowSize(width, height);
             Console.BufferWidth = width;
-            for (int j = height - 1; j >= 0; j--)
+            try
             {
-                for (int i = 0; i < width; i++)
+                for (int j = height - 1; j >= 0; j--)
                 {
-                    screen[i, j] = ' ';
-                    DrawFigure.emptyArray[i, j] = ' ';
+                    for (int i = 0; i < width; i++)
+                    {
+                        screen[i, j] = V;
+                        DrawFigure.emptyArray[i, j] = V;
+                    }
                 }
+            }
+            catch (Exception)
+            {
+                Console.WriteLine(width + " " + height);
             }
         }
 
@@ -32,38 +41,46 @@ namespace EarthGravitySimulation
         static void Main(string[] args)
         {
             setup();
-            Body body = new Body(2, 0.4, 0.04, 1, new Vector(-0.08, 0), true);
-            Body body2 = new Body(-2, 0.4, 0.04, 2, new Vector(0.08, 0), true);
+            Square square = new Square(-1, -0.625, 0.75);
+            DrawFigure.objects.Add(square);
             while (true)
             {
-                DrawFigure.refresh();
-                Task.Factory.StartNew(() =>
+                var tokenSource = new CancellationTokenSource();
+                CancellationToken token = tokenSource.Token;
+                var task = new Task(() =>
                 {
-                    if (Console.KeyAvailable)
+                    token.ThrowIfCancellationRequested();
+                    while (!tokenSource.IsCancellationRequested)
                     {
-                        switch (Console.ReadKey(true).Key)
+                        if (player.state == 0)
                         {
-                            case ConsoleKey.RightArrow:
-                                Coordinates.deltaX += 0.2;
-                                break;
-                            case ConsoleKey.LeftArrow:
-                                Coordinates.deltaX -= 0.2;
-                                break;
-                            case ConsoleKey.UpArrow:
-                                Coordinates.deltaY += 0.2;
-                                break;
-                            case ConsoleKey.DownArrow:
-                                Coordinates.deltaY -= 0.2;
-                                break;
-                            case ConsoleKey.OemPlus:
-                                Coordinates.zoom -= 0.2;
-                                break;
-                            case ConsoleKey.OemMinus:
-                                Coordinates.zoom += 0.2;
-                                break;
+                            switch (Console.ReadKey(true).Key)
+                            {
+                                case ConsoleKey.RightArrow:
+                                    player.state = 1;
+                                    break;
+                                case ConsoleKey.LeftArrow:
+                                    player.state = -1;
+                                    break;
+                                case ConsoleKey.Spacebar:
+                                    if (!player.isInAir)
+                                    {
+                                        player.vector.y += 0.4;
+                                        player.isInAir = true;
+                                    }
+                                    break;
+
+                            }
                         }
+                        break;
                     }
-                });
+                }, token);
+
+                task.Start();
+                Thread.Sleep(30);
+                tokenSource.Cancel();
+
+                DrawFigure.refresh();
             }
         }
     }

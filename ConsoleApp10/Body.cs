@@ -7,9 +7,13 @@ namespace EarthGravitySimulation
         private static int width = Program.width;
         private static int height = Program.height;
 
+        
+
+        public int state = 0;
+        public bool isInAir = true;
+
         public Vector vector = new Vector(0, 0);
-        private double x0, y0, radius;
-        private bool isOnTheGround = false;
+        public double x0, y0, radius;
         public double mass;
         public double X0 { get { return x0; } private set { x0 = Coordinates.normalizeX(value); } }
         public double Y0 { get { return y0; } private set { y0 = Coordinates.normalizeY(value); } }
@@ -25,27 +29,28 @@ namespace EarthGravitySimulation
             Y0 = y0;
             Radius = radius;
             updateScreen();
-            if (check)
-            {
-                DrawFigure.bodies.Add(this);
-            }
-
         }
         public void moveToVector(Vector vector)
         {
             this.vector.add(vector);
-            if (isOnTheGround) { vector.y = 0; }
             if (y0 + this.vector.y <= -1)
             {
-                y0 = -1 + Radius;
+                y0 = -1 + 6 * Radius;
+                this.vector.y = 0;
+                isInAir = false;
             }
             else
             {
                 y0 += this.vector.y;
             }
             x0 = this.vector.x + x0;
-            if (Math.Abs(vector.y) < 0.02) isOnTheGround = true;
-            if (Math.Abs(vector.x) < 0.1) vector.x = 0;
+            updateScreen();
+        }
+
+        public void moveTo(double x, double y)
+        {
+            x0 = x;
+            y0 = y;
             updateScreen();
         }
 
